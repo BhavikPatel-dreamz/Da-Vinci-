@@ -9,23 +9,25 @@ export async function CatalogSection() {
   const collections = (await listCollections()).slice(0, 3);
 
   return (
-    <section>
-      <Container className="py-24 md:py-32">
+    <section className="relative">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-surface/30 to-transparent" />
+      <Container className="relative py-28 md:py-40">
         <SectionTitle
           action={
             <Link
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex items-center gap-2 border-b border-border pb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
               href="/collections"
             >
               All collections
               <Icon className="size-4" name="arrow-up-right" />
             </Link>
           }
-          className="mb-12"
-          eyebrow="The catalog"
-          title="Three lines, one obsession with detail."
+          className="mb-14"
+          eyebrow="Designed around your ritual"
+          title="Choose your way in."
+          titleClassName="text-balance md:text-6xl"
         />
-        <div className="grid gap-4 md:grid-cols-3 md:gap-6">
+        <div className="grid gap-5 md:grid-cols-3 md:gap-6">
           {collections.map((collection, index) => (
             <CollectionCard
               collection={collection}

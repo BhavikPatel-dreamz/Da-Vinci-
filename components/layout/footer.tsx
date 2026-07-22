@@ -34,8 +34,8 @@ function FooterGroup({
 
 export function Footer() {
   return (
-    <footer className="mt-32 border-t border-border">
-      <Container className="py-20">
+    <footer className="mt-20 border-t border-border bg-surface/20 md:mt-28">
+      <Container className="py-16 md:py-20">
         <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
           <div>
             <Logo className="text-xl" />

@@ -1,9 +1,12 @@
 import { CatalogSection } from "@/components/sections/catalog-section";
 import { ComparisonCta } from "@/components/sections/comparison-cta";
 import { CraftSection } from "@/components/sections/craft-section";
+import { CraftDetailsSection } from "@/components/sections/craft-details-section";
 import { FeatureStrip } from "@/components/sections/feature-strip";
 import { HeroSection } from "@/components/sections/hero-section";
+import { MissionSection } from "@/components/sections/mission-section";
 import { NewsletterSection } from "@/components/sections/newsletter-section";
+import { PartnersSection } from "@/components/sections/partners-section";
 import { ProductsSection } from "@/components/sections/products-section";
 import { TestimonialsSection } from "@/components/sections/testimonials-section";
 import { SiteShell } from "@/components/layout/site-shell";
@@ -18,8 +21,11 @@ export default function Home() {
       <CatalogSection />
       <ProductsSection />
       <CraftSection />
+      <CraftDetailsSection />
       <ComparisonCta />
       <TestimonialsSection />
+      <PartnersSection />
+      <MissionSection />
       <NewsletterSection />
     </SiteShell>
   );

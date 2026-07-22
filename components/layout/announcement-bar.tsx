@@ -16,11 +16,14 @@ export function AnnouncementBar() {
   }, []);
 
   return (
-    <div className="border-b border-border bg-background/60 text-xs text-muted-foreground">
-      <Container className="flex h-9 items-center justify-center overflow-hidden">
+    <div className="border-b border-primary/15 bg-primary text-xs text-primary-foreground">
+      <Container className="relative flex h-9 items-center justify-center overflow-hidden">
+        <span className="absolute left-4 hidden text-[0.58rem] font-semibold uppercase tracking-[0.2em] opacity-60 md:block">
+          DaVinci standard
+        </span>
         <span
           key={announcementMessages[index]}
-          className="animate-[ticker-in_350ms_ease-out_both] text-[0.68rem] uppercase tracking-wider"
+          className="animate-[ticker-in_350ms_ease-out_both] text-[0.66rem] font-semibold uppercase tracking-[0.14em]"
         >
           {announcementMessages[index]}
         </span>

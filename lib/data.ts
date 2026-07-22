@@ -31,11 +31,11 @@ const desktopImage = "/assets/product-desktop-DdNf9Un2.jpg";
 const accessoriesImage = "/assets/product-accessories-BrKIPgD4.jpg";
 
 export const hero = {
-  eyebrow: "New \u2014 IQ-C \u00b7 Ceramic Convection",
-  title: "Precision,",
-  accent: "distilled.",
-  body: "Ceramic airpaths, 1\u00b0 temperature control, and a 10-year warranty. Vaporizers engineered like the instruments they are.",
-  image: "/assets/hero-device-BnN7IleR.jpg",
+  eyebrow: "The new IQ-C \u00b7 Series 02",
+  title: "Engineered for",
+  accent: "the exact moment.",
+  body: "A precision instrument for people who notice the difference. Clean ceramic, exact temperature, and nothing between you and the experience.",
+  image: "/assets/hero-campaign-v2.png",
 };
 
 export const trustMetrics: TrustMetric[] = [

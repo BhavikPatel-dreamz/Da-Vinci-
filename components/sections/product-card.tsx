@@ -14,11 +14,11 @@ export function ProductCard({ index, product }: { index: number; product: Produc
   return (
     <Reveal delay={delay}>
       <article className="group">
-        <div className="relative aspect-square overflow-hidden rounded-lg bg-surface">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-border bg-surface-elevated">
           <Link aria-label={`View ${product.name}`} className="block size-full" href={`/products/${product.handle}`}>
             <Image
               alt={product.name}
-              className="object-cover transition-opacity duration-500 group-hover:opacity-0"
+              className="object-cover transition-[opacity,transform] duration-700 group-hover:scale-[1.03] group-hover:opacity-0"
               fill
               sizes="(min-width: 768px) 25vw, 50vw"
               src={primaryImage}
@@ -27,7 +27,7 @@ export function ProductCard({ index, product }: { index: number; product: Produc
               <Image
                 alt=""
                 aria-hidden="true"
-                className="scale-105 object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                className="scale-105 object-cover opacity-0 transition-[opacity,transform] duration-700 group-hover:scale-100 group-hover:opacity-100"
                 fill
                 sizes="(min-width: 768px) 25vw, 50vw"
                 src={hoverImage}
@@ -44,10 +44,10 @@ export function ProductCard({ index, product }: { index: number; product: Produc
             product={product}
           />
         </div>
-        <Link className="mt-4 grid grid-cols-[1fr_auto] gap-4" href={`/products/${product.handle}`}>
+        <Link className="mt-5 grid grid-cols-[1fr_auto] gap-4" href={`/products/${product.handle}`}>
           <div className="min-w-0">
-            <h3 className="truncate text-sm font-medium">{product.name}</h3>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">{product.subtitle}</p>
+            <h3 className="truncate font-display text-base font-medium tracking-tight">{product.name}</h3>
+            <p className="mt-1 truncate text-xs text-muted-foreground">{product.subtitle}</p>
             {product.rating && product.reviewCount ? (
               <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                 <Icon className="size-3 fill-primary text-primary" name="star" />
