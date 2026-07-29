@@ -1,12 +1,14 @@
-"use client";
-
-import { useState } from "react";
+import Link from "next/link";
 import type { Product, ProductStatusFlag } from "@/types/site";
 import { ProductCard } from "@/components/sections/product-card";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Icon } from "@/components/ui/icon";
 import { Eyebrow } from "@/components/ui/section-title";
+import {
+  getPageFromSearchParams,
+  type ProductListingSearchParams,
+} from "@/lib/pagination";
 import { cx } from "@/lib/utils";
 
 type SortValue =
@@ -28,8 +30,8 @@ type ProductListingPageProps = {
   emptyMessage?: string;
   eyebrow: string;
   limit: number;
-  offset: number;
   products: Product[];
+  searchParams: ProductListingSearchParams;
   title: string;
 };
 
@@ -44,6 +46,10 @@ const statusLabels: Record<ProductStatusFlag, string> = {
   new: "New",
   sale: "Sale",
 };
+
+function getSearchValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
 
 function getUniqueOptions(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).sort((first, second) =>
@@ -173,32 +179,101 @@ function buildSortOptions(products: Product[]) {
   ];
 }
 
+function buildPageHref({
+  basePath,
+  category,
+  collection,
+  page,
+  sort,
+  status,
+  stock,
+}: {
+  basePath: string;
+  category: string;
+  collection: string;
+  page: number;
+  sort: SortValue;
+  status: ProductStatusFlag | "all";
+  stock: StockFilter;
+}) {
+  const query = new URLSearchParams();
+
+  if (category !== "all") {
+    query.set("category", category);
+  }
+
+  if (collection !== "all") {
+    query.set("collection", collection);
+  }
+
+  if (sort !== "recommended") {
+    query.set("sort", sort);
+  }
+
+  if (status !== "all") {
+    query.set("status", status);
+  }
+
+  if (stock !== "all") {
+    query.set("stock", stock);
+  }
+
+  if (page > 1) {
+    query.set("page", String(page));
+  }
+
+  const search = query.toString();
+  return search ? `${basePath}?${search}` : basePath;
+}
+
 export function ProductListingPage({
+  basePath,
   count,
   description,
   emptyMessage = "Nothing matches those filters.",
   eyebrow,
   limit,
-  offset,
   products,
+  searchParams,
   title,
 }: ProductListingPageProps) {
-  const initialPage = Math.max(1, Math.floor(offset / limit) + 1);
-  const [category, setCategory] = useState("all");
-  const [collection, setCollection] = useState("all");
-  const [currentPage, setCurrentPage] = useState(initialPage);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sort, setSort] = useState<SortValue>("recommended");
-  const [status, setStatus] = useState<ProductStatusFlag | "all">("all");
-  const [stock, setStock] = useState<StockFilter>("all");
   const statusOptions = (["featured", "bestseller", "new", "sale"] as const).filter((flag) =>
     products.some((product) => product.statusFlags.includes(flag)),
   );
   const collectionOptions = getUniqueOptions(
     products.flatMap((product) => product.collectionNames),
   );
-  const categoryOptions = getUniqueOptions(products.flatMap((product) => product.categoryNames));
+  const categoryOptions = getUniqueOptions(
+    products.flatMap((product) => product.categoryNames),
+  );
   const sortOptions = buildSortOptions(products);
+  const requestedCategory = getSearchValue(searchParams.category);
+  const requestedCollection = getSearchValue(searchParams.collection);
+  const requestedSort = getSearchValue(searchParams.sort);
+  const requestedStatus = getSearchValue(searchParams.status);
+  const requestedStock = getSearchValue(searchParams.stock);
+  const category =
+    requestedCategory && categoryOptions.includes(requestedCategory)
+      ? requestedCategory
+      : "all";
+  const collection =
+    requestedCollection && collectionOptions.includes(requestedCollection)
+      ? requestedCollection
+      : "all";
+  const sort =
+    requestedSort &&
+    sortOptions.some((option) => option.value === requestedSort)
+      ? (requestedSort as SortValue)
+      : "recommended";
+  const status =
+    requestedStatus &&
+    statusOptions.includes(requestedStatus as ProductStatusFlag)
+      ? (requestedStatus as ProductStatusFlag)
+      : "all";
+  const stock =
+    requestedStock && ["in-stock", "sold-out"].includes(requestedStock)
+      ? (requestedStock as StockFilter)
+      : "all";
   const filteredProducts = filterProducts({
     category,
     collection,
@@ -208,43 +283,26 @@ export function ProductListingPage({
   });
   const sortedProducts = sortProducts(filteredProducts, sort);
   const totalPages = Math.max(1, Math.ceil(sortedProducts.length / limit));
-  const safeCurrentPage = Math.min(currentPage, totalPages);
-  const pageStart = (safeCurrentPage - 1) * limit;
+  const currentPage = Math.min(getPageFromSearchParams(searchParams), totalPages);
+  const pageStart = (currentPage - 1) * limit;
   const pageProducts = sortedProducts.slice(pageStart, pageStart + limit);
-  const activeFilterCount = [status !== "all", collection !== "all", category !== "all", stock !== "all"].filter(Boolean).length;
-
-  function clearFilters() {
-    setCategory("all");
-    setCollection("all");
-    setStatus("all");
-    setStock("all");
-    setCurrentPage(1);
-  }
-
-  function updateCategory(value: string) {
-    setCategory(value);
-    setCurrentPage(1);
-  }
-
-  function updateCollection(value: string) {
-    setCollection(value);
-    setCurrentPage(1);
-  }
-
-  function updateSort(value: SortValue) {
-    setSort(value);
-    setCurrentPage(1);
-  }
-
-  function updateStatus(value: ProductStatusFlag | "all") {
-    setStatus(value);
-    setCurrentPage(1);
-  }
-
-  function updateStock(value: StockFilter) {
-    setStock(value);
-    setCurrentPage(1);
-  }
+  const activeFilterCount = [
+    status !== "all",
+    collection !== "all",
+    category !== "all",
+    stock !== "all",
+  ].filter(Boolean).length;
+  const hasCustomQuery = activeFilterCount > 0 || sort !== "recommended";
+  const pageHref = (page: number) =>
+    buildPageHref({
+      basePath,
+      category,
+      collection,
+      page,
+      sort,
+      status,
+      stock,
+    });
 
   return (
     <>
@@ -259,98 +317,98 @@ export function ProductListingPage({
       </section>
 
       <div className="sticky top-16 z-30 border-y border-border bg-background/85 backdrop-blur-xl">
-        <Container className="flex min-h-14 flex-wrap items-center justify-between gap-3 py-2 text-sm">
-          <Button
-            aria-expanded={filtersOpen}
-            onClick={() => setFiltersOpen((open) => !open)}
-            type="button"
-            variant="ghost"
-          >
-            <Icon className="size-4" name="sliders-horizontal" />
-            Filters
-            {activeFilterCount > 0 ? (
-              <span className="rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] text-primary-foreground">
-                {activeFilterCount}
+        <Container className="py-2 text-sm">
+          <details open={activeFilterCount > 0}>
+            <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 rounded-[var(--radius)] px-4 transition-colors hover:bg-secondary">
+              <span className="inline-flex items-center gap-2 font-medium">
+                <Icon className="size-4" name="sliders-horizontal" />
+                Filters &amp; sort
+                {activeFilterCount > 0 ? (
+                  <span className="rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] text-primary-foreground">
+                    {activeFilterCount}
+                  </span>
+                ) : null}
               </span>
-            ) : null}
-          </Button>
-          <div className="text-xs text-muted-foreground">
-            {sortedProducts.length === count
-              ? `${count} products`
-              : `${sortedProducts.length} of ${count} products`}
-          </div>
-          <label className={buttonClasses("ghost", "cursor-pointer")}>
-            <Icon className="size-4" name="arrow-up-down" />
-            <select
-              aria-label="Sort products"
-              className="border-0 bg-transparent text-muted-foreground text-sm focus:outline-none"
-              onChange={(event) => updateSort(event.target.value as SortValue)}
-              value={sort}
+              <span className="text-xs text-muted-foreground">
+                {sortedProducts.length === count
+                  ? `${count} products`
+                  : `${sortedProducts.length} of ${count} products`}
+              </span>
+            </summary>
+
+            <form
+              action={basePath}
+              className="grid gap-3 border-t border-border py-4 md:grid-cols-3 lg:grid-cols-6"
+              method="get"
             >
-              {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              {statusOptions.length > 0 ? (
+                <FilterSelect
+                  label="Status"
+                  name="status"
+                  options={statusOptions.map((flag) => ({
+                    label: statusLabels[flag],
+                    value: flag,
+                  }))}
+                  value={status}
+                />
+              ) : null}
+
+              {collectionOptions.length > 1 ? (
+                <FilterSelect
+                  label="Collection"
+                  name="collection"
+                  options={collectionOptions.map((option) => ({
+                    label: option,
+                    value: option,
+                  }))}
+                  value={collection}
+                />
+              ) : null}
+
+              {categoryOptions.length > 1 ? (
+                <FilterSelect
+                  label="Category"
+                  name="category"
+                  options={categoryOptions.map((option) => ({
+                    label: option,
+                    value: option,
+                  }))}
+                  value={category}
+                />
+              ) : null}
+
+              <FilterSelect
+                label="Availability"
+                name="stock"
+                options={[
+                  { label: "In stock", value: "in-stock" },
+                  { label: "Sold out", value: "sold-out" },
+                ]}
+                value={stock}
+              />
+
+              <FilterSelect
+                includeAll={false}
+                label="Sort"
+                name="sort"
+                options={sortOptions}
+                value={sort}
+              />
+
+              <div className="flex items-end gap-2">
+                <Button className="h-11 flex-1" type="submit" variant="secondary">
+                  <Icon className="size-4" name="arrow-up-down" />
+                  Apply
+                </Button>
+                {hasCustomQuery ? (
+                  <Link className={buttonClasses("ghost", "h-11")} href={basePath}>
+                    Clear
+                  </Link>
+                ) : null}
+              </div>
+            </form>
+          </details>
         </Container>
-
-        {filtersOpen ? (
-          <Container className="grid gap-3 border-t border-border py-4 md:grid-cols-4">
-            {statusOptions.length > 0 ? (
-              <FilterSelect
-                label="Status"
-                onChange={(value) => updateStatus(value as ProductStatusFlag | "all")}
-                options={statusOptions.map((flag) => ({
-                  label: statusLabels[flag],
-                  value: flag,
-                }))}
-                value={status}
-              />
-            ) : null}
-
-            {collectionOptions.length > 1 ? (
-              <FilterSelect
-                label="Collection"
-                onChange={updateCollection}
-                options={collectionOptions.map((option) => ({
-                  label: option,
-                  value: option,
-                }))}
-                value={collection}
-              />
-            ) : null}
-
-            {categoryOptions.length > 1 ? (
-              <FilterSelect
-                label="Category"
-                onChange={updateCategory}
-                options={categoryOptions.map((option) => ({
-                  label: option,
-                  value: option,
-                }))}
-                value={category}
-              />
-            ) : null}
-
-            <FilterSelect
-              label="Availability"
-              onChange={(value) => updateStock(value as StockFilter)}
-              options={[
-                { label: "In stock", value: "in-stock" },
-                { label: "Sold out", value: "sold-out" },
-              ]}
-              value={stock}
-            />
-
-            {activeFilterCount > 0 ? (
-              <Button className="md:self-end" onClick={clearFilters} type="button" variant="secondary">
-                Clear filters
-              </Button>
-            ) : null}
-          </Container>
-        ) : null}
       </div>
 
       <section>
@@ -370,27 +428,35 @@ export function ProductListingPage({
               aria-label="Product pagination"
               className="mt-12 flex items-center justify-center gap-3 text-sm"
             >
-              <button
-                className={buttonClasses("secondary", safeCurrentPage <= 1 ? "pointer-events-none opacity-40" : "")}
-                disabled={safeCurrentPage <= 1}
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                type="button"
-              >
-                Previous
-              </button>
+              {currentPage > 1 ? (
+                <Link className={buttonClasses("secondary")} href={pageHref(currentPage - 1)}>
+                  Previous
+                </Link>
+              ) : (
+                <span
+                  aria-disabled="true"
+                  className={buttonClasses("secondary", "pointer-events-none opacity-40")}
+                >
+                  Previous
+                </span>
+              )}
 
               <span className="text-xs text-muted-foreground">
-                Page {safeCurrentPage} of {totalPages}
+                Page {currentPage} of {totalPages}
               </span>
 
-              <button
-                className={buttonClasses("secondary", safeCurrentPage >= totalPages ? "pointer-events-none opacity-40" : "")}
-                disabled={safeCurrentPage >= totalPages}
-                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                type="button"
-              >
-                Next
-              </button>
+              {currentPage < totalPages ? (
+                <Link className={buttonClasses("secondary")} href={pageHref(currentPage + 1)}>
+                  Next
+                </Link>
+              ) : (
+                <span
+                  aria-disabled="true"
+                  className={buttonClasses("secondary", "pointer-events-none opacity-40")}
+                >
+                  Next
+                </span>
+              )}
             </nav>
           ) : null}
         </Container>
@@ -400,13 +466,15 @@ export function ProductListingPage({
 }
 
 function FilterSelect({
+  includeAll = true,
   label,
-  onChange,
+  name,
   options,
   value,
 }: {
+  includeAll?: boolean;
   label: string;
-  onChange: (value: string) => void;
+  name: string;
   options: Option[];
   value: string;
 }) {
@@ -418,10 +486,10 @@ function FilterSelect({
           "h-11 rounded-[var(--radius)] border border-border bg-background px-3 text-sm normal-case tracking-normal text-foreground outline-none transition-colors",
           "focus:border-primary",
         )}
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
+        defaultValue={value}
+        name={name}
       >
-        <option value="all">All</option>
+        {includeAll ? <option value="all">All</option> : null}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

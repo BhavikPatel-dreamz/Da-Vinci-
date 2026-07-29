@@ -3,10 +3,8 @@ import { SiteShell } from "@/components/layout/site-shell";
 import { ProductListingPage } from "@/components/sections/product-listing-page";
 import { listAllProducts } from "@/lib/medusa";
 import {
-  getOffsetFromPage,
-  getPageFromSearchParams,
   PRODUCT_PAGE_SIZE,
-  type PageSearchParams,
+  type ProductListingSearchParams,
 } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
@@ -17,11 +15,11 @@ export const metadata: Metadata = {
 };
 
 type ProductsRouteProps = {
-  searchParams: Promise<PageSearchParams>;
+  searchParams: Promise<ProductListingSearchParams>;
 };
 
 export default async function ProductsRoute({ searchParams }: ProductsRouteProps) {
-  const page = getPageFromSearchParams(await searchParams);
+  const resolvedSearchParams = await searchParams;
   const { count, products } = await listAllProducts();
 
   return (
@@ -33,8 +31,8 @@ export default async function ProductsRoute({ searchParams }: ProductsRouteProps
         emptyMessage="No products are available yet."
         eyebrow="Shop"
         limit={PRODUCT_PAGE_SIZE}
-        offset={getOffsetFromPage(page)}
         products={products}
+        searchParams={resolvedSearchParams}
         title="Products"
       />
     </SiteShell>

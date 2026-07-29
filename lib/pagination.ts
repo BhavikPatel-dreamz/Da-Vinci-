@@ -4,6 +4,14 @@ export type PageSearchParams = {
   page?: string | string[];
 };
 
+export type ProductListingSearchParams = PageSearchParams & {
+  category?: string | string[];
+  collection?: string | string[];
+  sort?: string | string[];
+  status?: string | string[];
+  stock?: string | string[];
+};
+
 export function getPageFromSearchParams(searchParams: PageSearchParams) {
   const rawPage = Array.isArray(searchParams.page) ? searchParams.page[0] : searchParams.page;
   const page = Number(rawPage ?? "1");

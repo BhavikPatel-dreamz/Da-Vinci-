@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
+import { cache } from "react";
 import type {
   Category,
   Collection,
@@ -538,6 +539,36 @@ export function mapCategory(category: HttpTypes.StoreProductCategory) {
   } satisfies Category;
 }
 
+function getFirstCatalogProductImage(products: Product[]) {
+  return products.find((product) => product.images[0] !== PLACEHOLDER_IMAGE)?.images[0];
+}
+
+function mapScopedCollection(
+  collection: HttpTypes.StoreCollection,
+  products: Product[],
+) {
+  const mappedCollection = mapCollection(collection);
+
+  return {
+    ...mappedCollection,
+    image: getFirstCatalogProductImage(products) ?? mappedCollection.image,
+    productCount: products.length,
+  } satisfies Collection;
+}
+
+function mapScopedCategory(
+  category: HttpTypes.StoreProductCategory,
+  products: Product[],
+) {
+  const mappedCategory = mapCategory(category);
+
+  return {
+    ...mappedCategory,
+    image: getFirstCatalogProductImage(products) ?? mappedCategory.image,
+    productCount: products.length,
+  } satisfies Category;
+}
+
 export async function getDefaultRegion() {
   const configuredCountry = process.env.NEXT_PUBLIC_DEFAULT_REGION?.trim().toLowerCase();
   const { regions } = await sdk.store.region.list({
@@ -592,12 +623,12 @@ export async function listProducts({
   } satisfies PaginatedProducts;
 }
 
-export async function listAllProducts({
-  categoryId,
-  collectionId,
-  handle,
-  limit = 100,
-}: Omit<ListProductsOptions, "offset"> = {}) {
+const listAllProductsCached = cache(async function listAllProductsCached(
+  categoryId: string | undefined,
+  collectionId: string | undefined,
+  handle: string | undefined,
+  limit: number,
+) {
   const products: Product[] = [];
   let offset = 0;
   let count = 0;
@@ -629,6 +660,15 @@ export async function listAllProducts({
     products,
     region,
   } satisfies PaginatedProducts;
+});
+
+export function listAllProducts({
+  categoryId,
+  collectionId,
+  handle,
+  limit = 100,
+}: Omit<ListProductsOptions, "offset"> = {}) {
+  return listAllProductsCached(categoryId, collectionId, handle, limit);
 }
 
 export async function getProductByHandle(handle: string) {
@@ -642,42 +682,73 @@ export async function getRelatedProducts(handle: string, limit = 4) {
 }
 
 export async function listCollections(limit = 100) {
-  const response = await sdk.store.collection.list({
-    fields: "id,title,handle,metadata,*products",
-    limit,
-  });
+  const [response, catalog] = await Promise.all([
+    sdk.store.collection.list({
+      fields: "id,title,handle,metadata",
+      limit,
+    }),
+    listAllProducts(),
+  ]);
 
-  return response.collections.map(mapCollection);
+  return response.collections.flatMap((collection) => {
+    const products = catalog.products.filter((product) =>
+      product.collectionIds.includes(collection.id),
+    );
+
+    return products.length > 0 ? [mapScopedCollection(collection, products)] : [];
+  });
 }
 
 export async function getCollectionByHandle(handle: string) {
   const response = await sdk.store.collection.list({
-    fields: "id,title,handle,metadata,*products",
+    fields: "id,title,handle,metadata",
     handle,
     limit: 1,
   });
+  const collection = response.collections[0];
 
-  return response.collections[0] ? mapCollection(response.collections[0]) : null;
+  if (!collection) {
+    return null;
+  }
+
+  const { products } = await listAllProducts({ collectionId: collection.id });
+
+  return products.length > 0 ? mapScopedCollection(collection, products) : null;
 }
 
 export async function listCategories(limit = 100) {
-  const response = await sdk.store.category.list({
-    fields:
-      "id,name,description,handle,parent_category_id,metadata,*products,*category_children",
-    limit,
-  });
+  const [response, catalog] = await Promise.all([
+    sdk.store.category.list({
+      fields: "id,name,description,handle,parent_category_id,metadata",
+      limit,
+    }),
+    listAllProducts(),
+  ]);
 
-  return response.product_categories.map(mapCategory);
+  return response.product_categories.flatMap((category) => {
+    const products = catalog.products.filter((product) =>
+      product.categoryIds.includes(category.id),
+    );
+
+    return products.length > 0 ? [mapScopedCategory(category, products)] : [];
+  });
 }
 
 export async function getCategoryByHandle(handle: string) {
   const response = await sdk.store.category.list({
-    fields: "id,name,description,handle,parent_category_id,metadata,*products",
+    fields: "id,name,description,handle,parent_category_id,metadata",
     handle,
     limit: 1,
   });
+  const category = response.product_categories[0];
 
-  return response.product_categories[0] ? mapCategory(response.product_categories[0]) : null;
+  if (!category) {
+    return null;
+  }
+
+  const { products } = await listAllProducts({ categoryId: category.id });
+
+  return products.length > 0 ? mapScopedCategory(category, products) : null;
 }
 
 export async function retrieveCart(cartId: string) {
