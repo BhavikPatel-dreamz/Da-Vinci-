@@ -4,17 +4,15 @@ import { SiteShell } from "@/components/layout/site-shell";
 import { ProductListingPage } from "@/components/sections/product-listing-page";
 import { getCollectionByHandle, listAllProducts } from "@/lib/medusa";
 import {
-  getOffsetFromPage,
-  getPageFromSearchParams,
   PRODUCT_PAGE_SIZE,
-  type PageSearchParams,
+  type ProductListingSearchParams,
 } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
 type CollectionRouteProps = {
   params: Promise<{ handle: string }>;
-  searchParams: Promise<PageSearchParams>;
+  searchParams: Promise<ProductListingSearchParams>;
 };
 
 export async function generateMetadata({
@@ -46,7 +44,7 @@ export default async function CollectionRoute({
     notFound();
   }
 
-  const page = getPageFromSearchParams(await searchParams);
+  const resolvedSearchParams = await searchParams;
   const { count, products } = await listAllProducts({
     collectionId: collection.id,
   });
@@ -60,8 +58,8 @@ export default async function CollectionRoute({
         emptyMessage="No products are available in this collection yet."
         eyebrow="Collection"
         limit={PRODUCT_PAGE_SIZE}
-        offset={getOffsetFromPage(page)}
         products={products}
+        searchParams={resolvedSearchParams}
         title={collection.name}
       />
     </SiteShell>

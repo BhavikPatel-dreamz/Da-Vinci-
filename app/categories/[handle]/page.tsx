@@ -4,17 +4,15 @@ import { SiteShell } from "@/components/layout/site-shell";
 import { ProductListingPage } from "@/components/sections/product-listing-page";
 import { getCategoryByHandle, listAllProducts } from "@/lib/medusa";
 import {
-  getOffsetFromPage,
-  getPageFromSearchParams,
   PRODUCT_PAGE_SIZE,
-  type PageSearchParams,
+  type ProductListingSearchParams,
 } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
 type CategoryRouteProps = {
   params: Promise<{ handle: string }>;
-  searchParams: Promise<PageSearchParams>;
+  searchParams: Promise<ProductListingSearchParams>;
 };
 
 export async function generateMetadata({
@@ -46,7 +44,7 @@ export default async function CategoryRoute({
     notFound();
   }
 
-  const page = getPageFromSearchParams(await searchParams);
+  const resolvedSearchParams = await searchParams;
   const { count, products } = await listAllProducts({
     categoryId: category.id,
   });
@@ -60,8 +58,8 @@ export default async function CategoryRoute({
         emptyMessage="No products are available in this category yet."
         eyebrow="Category"
         limit={PRODUCT_PAGE_SIZE}
-        offset={getOffsetFromPage(page)}
         products={products}
+        searchParams={resolvedSearchParams}
         title={category.name}
       />
     </SiteShell>
